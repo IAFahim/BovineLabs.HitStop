@@ -69,8 +69,7 @@ namespace BovineLabs.HitStop
             {
                 if (cfg.OnHit == ConditionKey.Null || !HasEvent(events, cfg.OnHit)) return;
 
-                var target = ResolveTarget(cfg.Target, entity, targets, Customs);
-                if (target == Entity.Null) return;
+                if (!TryResolveTarget(cfg.Target, entity, targets, Customs, out var target)) return;
 
                 var duration = 0f;
                 var intensity = 0f;
@@ -119,10 +118,10 @@ namespace BovineLabs.HitStop
                 return false;
             }
 
-            private static Entity ResolveTarget(Target target, Entity self, in Targets targets,
-                in ComponentLookup<TargetsCustom> customs)
+            private static bool TryResolveTarget(Target target, Entity self, in Targets targets,
+                in ComponentLookup<TargetsCustom> customs, out Entity resolved)
             {
-                return target switch
+                resolved = target switch
                 {
                     Target.Owner => targets.Owner,
                     Target.Source => targets.Source,
@@ -132,6 +131,8 @@ namespace BovineLabs.HitStop
                     Target.Custom1 => customs.TryGetComponent(self, out var c) ? c.Target1 : Entity.Null,
                     _ => Entity.Null
                 };
+
+                return resolved != Entity.Null;
             }
         }
 
