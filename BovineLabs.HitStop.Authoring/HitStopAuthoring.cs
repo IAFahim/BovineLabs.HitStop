@@ -1,7 +1,6 @@
 using BovineLabs.Essence.Authoring;
 using BovineLabs.HitStop.Data;
 using BovineLabs.Reaction.Authoring.Conditions;
-using BovineLabs.Reaction.Authoring.Core;
 using BovineLabs.Reaction.Data.Conditions;
 using BovineLabs.Reaction.Data.Core;
 using Unity.Entities;

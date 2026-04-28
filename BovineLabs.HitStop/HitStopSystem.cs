@@ -114,7 +114,8 @@ namespace BovineLabs.HitStop
             private static bool HasEvent(in DynamicBuffer<ConditionEvent> events, ConditionKey key)
             {
                 foreach (var kvp in events.AsMap())
-                    if (kvp.Key == key) return true;
+                    if (kvp.Key == key)
+                        return true;
                 return false;
             }
 
@@ -147,7 +148,7 @@ namespace BovineLabs.HitStop
 
                 if (state.RemainingTime > 0f)
                 {
-                    var random = Unity.Mathematics.Random.CreateFromIndex(state.Seed);
+                    var random = Random.CreateFromIndex(state.Seed);
                     state.Seed = random.NextUInt();
                     ptm.Value = float4x4.Translate(random.NextFloat3Direction() * state.CurrentIntensity);
                 }
@@ -157,9 +158,7 @@ namespace BovineLabs.HitStop
                     enabled.ValueRW = false;
 
                     if (state.OnEnd != ConditionKey.Null && Writers.TryGet(state.Source, out var writer))
-                    {
                         writer.Trigger(state.OnEnd, 1);
-                    }
                 }
             }
         }
