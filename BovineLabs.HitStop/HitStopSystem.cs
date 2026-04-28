@@ -24,7 +24,7 @@ namespace BovineLabs.HitStop
         {
             customsLookup = state.GetComponentLookup<TargetsCustom>(true);
             statsLookup = state.GetBufferLookup<Stat>(true);
-            statesLookup = state.GetComponentLookup<HitStopState>(false);
+            statesLookup = state.GetComponentLookup<HitStopState>(true);
             writersLookup.Create(ref state);
         }
 
@@ -60,7 +60,7 @@ namespace BovineLabs.HitStop
         {
             [ReadOnly] public ComponentLookup<TargetsCustom> Customs;
             [ReadOnly] public BufferLookup<Stat> Stats;
-            [NativeDisableParallelForRestriction] public ComponentLookup<HitStopState> States;
+            [ReadOnly] public ComponentLookup<HitStopState> States;
             public EntityCommandBuffer.ParallelWriter ECB;
             public uint SeedOffset;
 
@@ -101,8 +101,8 @@ namespace BovineLabs.HitStop
 
                 if (States.HasComponent(target))
                 {
-                    States.SetComponentEnabled(target, true);
-                    States[target] = newState;
+                    ECB.SetComponentEnabled<HitStopState>(sortKey, target, true);
+                    ECB.SetComponent(sortKey, target, newState);
                 }
                 else
                 {
