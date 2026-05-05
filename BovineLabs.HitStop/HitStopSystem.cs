@@ -22,6 +22,7 @@ namespace BovineLabs.HitStop
         [BurstCompile]
         public void OnCreate(ref SystemState state)
         {
+            state.RequireForUpdate<BeginSimulationEntityCommandBufferSystem.Singleton>();
             customsLookup = state.GetComponentLookup<TargetsCustom>(true);
             statsLookup = state.GetBufferLookup<Stat>(true);
             statesLookup = state.GetComponentLookup<HitStopState>(true);

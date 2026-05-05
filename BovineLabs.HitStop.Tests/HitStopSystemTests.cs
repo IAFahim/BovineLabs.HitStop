@@ -100,7 +100,7 @@ namespace BovineLabs.HitStop.Tests
         }
 
         [Test]
-        public void MultipleEntities_WithHitStopState_AllDisabledByDefault()
+        public void MultipleEntities_WithHitStopState_AllEnabledByDefault()
         {
             var archetype = this.Manager.CreateArchetype(typeof(HitStopState));
 
@@ -108,8 +108,8 @@ namespace BovineLabs.HitStop.Tests
 
             for (int i = 0; i < entities.Length; i++)
             {
-                Assert.IsFalse(this.Manager.IsComponentEnabled<HitStopState>(entities[i]),
-                    $"Entity {i} should have HitStopState disabled by default");
+                Assert.IsTrue(this.Manager.IsComponentEnabled<HitStopState>(entities[i]),
+                    $"Entity {i} should have HitStopState enabled by default");
             }
         }
 
