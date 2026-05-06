@@ -14,37 +14,37 @@ namespace BovineLabs.HitStop
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     public partial struct HitStopSystem : ISystem
     {
-        private ComponentLookup<TargetsCustom> customsLookup;
-        private BufferLookup<Stat> statsLookup;
-        private ComponentLookup<HitStopState> statesLookup;
-        private ConditionEventWriter.Lookup writersLookup;
+        private ComponentLookup<TargetsCustom> _customsLookup;
+        private BufferLookup<Stat> _statsLookup;
+        private ComponentLookup<HitStopState> _statesLookup;
+        private ConditionEventWriter.Lookup _writersLookup;
 
         [BurstCompile]
         public void OnCreate(ref SystemState state)
         {
             state.RequireForUpdate<BeginSimulationEntityCommandBufferSystem.Singleton>();
-            customsLookup = state.GetComponentLookup<TargetsCustom>(true);
-            statsLookup = state.GetBufferLookup<Stat>(true);
-            statesLookup = state.GetComponentLookup<HitStopState>(true);
-            writersLookup.Create(ref state);
+            _customsLookup = state.GetComponentLookup<TargetsCustom>(true);
+            _statsLookup = state.GetBufferLookup<Stat>(true);
+            _statesLookup = state.GetComponentLookup<HitStopState>(true);
+            _writersLookup.Create(ref state);
         }
 
         [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
-            customsLookup.Update(ref state);
-            statsLookup.Update(ref state);
-            statesLookup.Update(ref state);
-            writersLookup.Update(ref state);
+            _customsLookup.Update(ref state);
+            _statsLookup.Update(ref state);
+            _statesLookup.Update(ref state);
+            _writersLookup.Update(ref state);
 
             var ecb = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>()
                 .CreateCommandBuffer(state.WorldUnmanaged);
 
             state.Dependency = new TriggerJob
             {
-                Customs = customsLookup,
-                Stats = statsLookup,
-                States = statesLookup,
+                Customs = _customsLookup,
+                Stats = _statsLookup,
+                States = _statesLookup,
                 ECB = ecb.AsParallelWriter(),
                 SeedOffset = (uint)(SystemAPI.Time.ElapsedTime * 10000.0)
             }.ScheduleParallel(state.Dependency);
@@ -52,7 +52,7 @@ namespace BovineLabs.HitStop
             state.Dependency = new UpdateJob
             {
                 DeltaTime = SystemAPI.Time.DeltaTime,
-                Writers = writersLookup
+                Writers = _writersLookup
             }.ScheduleParallel(state.Dependency);
         }
 
