@@ -89,13 +89,6 @@ namespace BovineLabs.HitStop.Tests
     public class HitStopStateTests
     {
         [Test]
-        public void Default_RemainingTime_IsZero()
-        {
-            var state = new HitStopState();
-            Assert.AreEqual(0f, state.RemainingTime);
-        }
-
-        [Test]
         public void Default_CurrentIntensity_IsZero()
         {
             var state = new HitStopState();
@@ -129,13 +122,11 @@ namespace BovineLabs.HitStop.Tests
             var entity = new Entity { Index = 42, Version = 1 };
             var state = new HitStopState
             {
-                RemainingTime = 0.25f,
                 CurrentIntensity = 0.5f,
                 Seed = 12345u,
                 OnEnd = 99,
                 Source = entity
             };
-            Assert.AreEqual(0.25f, state.RemainingTime);
             Assert.AreEqual(0.5f, state.CurrentIntensity);
             Assert.AreEqual(12345u, state.Seed);
             Assert.AreEqual((ConditionKey)99, state.OnEnd);

@@ -1,3 +1,4 @@
+using BovineLabs.Core.Model;
 using BovineLabs.Essence.Data;
 using BovineLabs.HitStop.Data;
 using BovineLabs.Reaction.Conditions;
@@ -17,6 +18,10 @@ namespace BovineLabs.HitStop
         private ComponentLookup<TargetsCustom> _customsLookup;
         private BufferLookup<Stat> _statsLookup;
         private ComponentLookup<HitStopState> _statesLookup;
+        private ComponentLookup<HitStopDuration> _durationsLookup;
+        private ComponentLookup<HitStopRemainingTime> _remainingLookup;
+        private ComponentLookup<HitStopActive> _activeLookup;
+        private TimerEnableable<HitStopActive, HitStopRemainingTime, HitStopState, HitStopDuration> timer;
         private ConditionEventWriter.Lookup _writersLookup;
 
         [BurstCompile]
@@ -26,7 +31,12 @@ namespace BovineLabs.HitStop
             _customsLookup = state.GetComponentLookup<TargetsCustom>(true);
             _statsLookup = state.GetBufferLookup<Stat>(true);
             _statesLookup = state.GetComponentLookup<HitStopState>(true);
+            _durationsLookup = state.GetComponentLookup<HitStopDuration>(true);
+            _remainingLookup = state.GetComponentLookup<HitStopRemainingTime>(true);
+            _activeLookup = state.GetComponentLookup<HitStopActive>(true);
             _writersLookup.Create(ref state);
+
+            timer.OnCreate(ref state);
         }
 
         [BurstCompile]
@@ -35,6 +45,9 @@ namespace BovineLabs.HitStop
             _customsLookup.Update(ref state);
             _statsLookup.Update(ref state);
             _statesLookup.Update(ref state);
+            _durationsLookup.Update(ref state);
+            _remainingLookup.Update(ref state);
+            _activeLookup.Update(ref state);
             _writersLookup.Update(ref state);
 
             var ecb = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>()
@@ -45,15 +58,54 @@ namespace BovineLabs.HitStop
                 Customs = _customsLookup,
                 Stats = _statsLookup,
                 States = _statesLookup,
+                Durations = _durationsLookup,
+                Remaining = _remainingLookup,
+                Active = _activeLookup,
                 ECB = ecb.AsParallelWriter(),
                 SeedOffset = (uint)(SystemAPI.Time.ElapsedTime * 10000.0)
             }.ScheduleParallel(state.Dependency);
 
-            state.Dependency = new UpdateJob
+            // TimerEnableable handles vectorized timer tick and auto-disable of HitStopActive
+            timer.OnUpdate(ref state);
+
+            // ShakeJob handles visual shake and OnEnd event firing
+            state.Dependency = new ShakeJob
             {
-                DeltaTime = SystemAPI.Time.DeltaTime,
                 Writers = _writersLookup
             }.ScheduleParallel(state.Dependency);
+        }
+
+        /// <summary>
+        /// Applies visual shake via PostTransformMatrix while active, and fires OnEnd condition event
+        /// when the timer expires (remaining hits 0). TimerEnableable handles the timer tick and
+        /// auto-disable; this job resets the transform and fires events on expiry.
+        /// </summary>
+        [BurstCompile]
+        [WithAll(typeof(HitStopActive))]
+        private partial struct ShakeJob : IJobEntity
+        {
+            public ConditionEventWriter.Lookup Writers;
+
+            private void Execute(Entity entity, ref HitStopState state, ref PostTransformMatrix ptm,
+                ref HitStopRemainingTime remaining, EnabledRefRW<HitStopActive> active)
+            {
+                if (remaining.Value > 0f)
+                {
+                    var random = Unity.Mathematics.Random.CreateFromIndex(state.Seed);
+                    state.Seed = random.NextUInt();
+                    ptm.Value = float4x4.Translate(random.NextFloat3Direction() * state.CurrentIntensity);
+                }
+                else
+                {
+                    ptm.Value = float4x4.identity;
+                    active.ValueRW = false;
+
+                    if (state.OnEnd != ConditionKey.Null && Writers.TryGet(state.Source, out var writer))
+                    {
+                        writer.Trigger(state.OnEnd, 1);
+                    }
+                }
+            }
         }
 
         [BurstCompile]
@@ -62,6 +114,9 @@ namespace BovineLabs.HitStop
             [ReadOnly] public ComponentLookup<TargetsCustom> Customs;
             [ReadOnly] public BufferLookup<Stat> Stats;
             [ReadOnly] public ComponentLookup<HitStopState> States;
+            [ReadOnly] public ComponentLookup<HitStopDuration> Durations;
+            [ReadOnly] public ComponentLookup<HitStopRemainingTime> Remaining;
+            [ReadOnly] public ComponentLookup<HitStopActive> Active;
             public EntityCommandBuffer.ParallelWriter ECB;
             public uint SeedOffset;
 
@@ -90,23 +145,34 @@ namespace BovineLabs.HitStop
 
                 if (duration <= 0f) return;
 
-                var newState = new HitStopState
-                {
-                    RemainingTime = duration,
-                    CurrentIntensity = intensity,
-                    Seed = SeedOffset + (uint)sortKey,
-                    OnEnd = cfg.OnEnd,
-                    Source = entity
-                };
+                var newDuration = new HitStopDuration { Value = duration };
 
-                if (States.HasComponent(target))
+                if (Active.HasComponent(target))
                 {
+                    ECB.SetComponentEnabled<HitStopActive>(sortKey, target, true);
                     ECB.SetComponentEnabled<HitStopState>(sortKey, target, true);
-                    ECB.SetComponent(sortKey, target, newState);
+                    ECB.SetComponent(sortKey, target, new HitStopState
+                    {
+                        CurrentIntensity = intensity,
+                        Seed = SeedOffset + (uint)sortKey,
+                        OnEnd = cfg.OnEnd,
+                        Source = entity
+                    });
+                    ECB.SetComponent(sortKey, target, newDuration);
+                    ECB.SetComponent(sortKey, target, new HitStopRemainingTime { Value = duration });
                 }
                 else
                 {
-                    ECB.AddComponent(sortKey, target, newState);
+                    ECB.AddComponent(sortKey, target, new HitStopState
+                    {
+                        CurrentIntensity = intensity,
+                        Seed = SeedOffset + (uint)sortKey,
+                        OnEnd = cfg.OnEnd,
+                        Source = entity
+                    });
+                    ECB.AddComponent(sortKey, target, newDuration);
+                    ECB.AddComponent(sortKey, target, new HitStopRemainingTime { Value = duration });
+                    ECB.AddComponent(sortKey, target, new HitStopActive());
                     ECB.AddComponent(sortKey, target, new PostTransformMatrix { Value = float4x4.identity });
                 }
             }
@@ -134,34 +200,6 @@ namespace BovineLabs.HitStop
                 };
 
                 return resolved != Entity.Null;
-            }
-        }
-
-        [BurstCompile]
-        private partial struct UpdateJob : IJobEntity
-        {
-            public float DeltaTime;
-            public ConditionEventWriter.Lookup Writers;
-
-            private void Execute(Entity entity, ref HitStopState state, ref PostTransformMatrix ptm,
-                EnabledRefRW<HitStopState> enabled)
-            {
-                state.RemainingTime -= DeltaTime;
-
-                if (state.RemainingTime > 0f)
-                {
-                    var random = Random.CreateFromIndex(state.Seed);
-                    state.Seed = random.NextUInt();
-                    ptm.Value = float4x4.Translate(random.NextFloat3Direction() * state.CurrentIntensity);
-                }
-                else
-                {
-                    ptm.Value = float4x4.identity;
-                    enabled.ValueRW = false;
-
-                    if (state.OnEnd != ConditionKey.Null && Writers.TryGet(state.Source, out var writer))
-                        writer.Trigger(state.OnEnd, 1);
-                }
             }
         }
     }

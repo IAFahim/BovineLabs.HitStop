@@ -33,7 +33,11 @@ namespace BovineLabs.HitStop.Authoring
                 });
 
                 AddComponent<HitStopState>(entity);
+                AddComponent<HitStopDuration>(entity);
+                AddComponent<HitStopRemainingTime>(entity);
+                AddComponent<HitStopActive>(entity);
                 SetComponentEnabled<HitStopState>(entity, false);
+                SetComponentEnabled<HitStopActive>(entity, false);
             }
         }
     }

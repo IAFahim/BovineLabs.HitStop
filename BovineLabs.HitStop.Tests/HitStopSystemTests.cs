@@ -65,13 +65,13 @@ namespace BovineLabs.HitStop.Tests
         }
 
         [Test]
-        public void HitStopState_RemainingTime_SetAndGet()
+        public void HitStopRemainingTime_SetAndGet()
         {
-            var archetype = Manager.CreateArchetype(typeof(HitStopState));
+            var archetype = Manager.CreateArchetype(typeof(HitStopRemainingTime));
             var entity = Manager.CreateEntity(archetype);
 
-            Manager.SetComponentData(entity, new HitStopState { RemainingTime = 0.5f });
-            Assert.AreEqual(0.5f, Manager.GetComponentData<HitStopState>(entity).RemainingTime);
+            Manager.SetComponentData(entity, new HitStopRemainingTime { Value = 0.5f });
+            Assert.AreEqual(0.5f, Manager.GetComponentData<HitStopRemainingTime>(entity).Value);
         }
 
         [Test]
@@ -111,17 +111,17 @@ namespace BovineLabs.HitStop.Tests
         [Test]
         public void MultipleEntities_IndependentState()
         {
-            var archetype = Manager.CreateArchetype(typeof(HitStopState));
+            var archetype = Manager.CreateArchetype(typeof(HitStopState), typeof(HitStopRemainingTime));
 
             using var entities = Manager.CreateEntity(archetype, 3, Allocator.Temp);
 
-            Manager.SetComponentData(entities[0], new HitStopState { RemainingTime = 0.1f });
-            Manager.SetComponentData(entities[1], new HitStopState { RemainingTime = 0.2f });
-            Manager.SetComponentData(entities[2], new HitStopState { RemainingTime = 0.3f });
+            Manager.SetComponentData(entities[0], new HitStopRemainingTime { Value = 0.1f });
+            Manager.SetComponentData(entities[1], new HitStopRemainingTime { Value = 0.2f });
+            Manager.SetComponentData(entities[2], new HitStopRemainingTime { Value = 0.3f });
 
-            Assert.AreEqual(0.1f, Manager.GetComponentData<HitStopState>(entities[0]).RemainingTime);
-            Assert.AreEqual(0.2f, Manager.GetComponentData<HitStopState>(entities[1]).RemainingTime);
-            Assert.AreEqual(0.3f, Manager.GetComponentData<HitStopState>(entities[2]).RemainingTime);
+            Assert.AreEqual(0.1f, Manager.GetComponentData<HitStopRemainingTime>(entities[0]).Value);
+            Assert.AreEqual(0.2f, Manager.GetComponentData<HitStopRemainingTime>(entities[1]).Value);
+            Assert.AreEqual(0.3f, Manager.GetComponentData<HitStopRemainingTime>(entities[2]).Value);
         }
     }
 }
