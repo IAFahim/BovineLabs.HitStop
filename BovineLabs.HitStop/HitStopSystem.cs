@@ -76,9 +76,9 @@ namespace BovineLabs.HitStop
         }
 
         /// <summary>
-        /// Applies visual shake via PostTransformMatrix while active, and fires OnEnd condition event
-        /// when the timer expires (remaining hits 0). TimerEnableable handles the timer tick and
-        /// auto-disable; this job resets the transform and fires events on expiry.
+        ///     Applies visual shake via PostTransformMatrix while active, and fires OnEnd condition event
+        ///     when the timer expires (remaining hits 0). TimerEnableable handles the timer tick and
+        ///     auto-disable; this job resets the transform and fires events on expiry.
         /// </summary>
         [BurstCompile]
         [WithAll(typeof(HitStopActive))]
@@ -91,7 +91,7 @@ namespace BovineLabs.HitStop
             {
                 if (remaining.Value > 0f)
                 {
-                    var random = Unity.Mathematics.Random.CreateFromIndex(state.Seed);
+                    var random = Random.CreateFromIndex(state.Seed);
                     state.Seed = random.NextUInt();
                     ptm.Value = float4x4.Translate(random.NextFloat3Direction() * state.CurrentIntensity);
                 }
@@ -101,9 +101,7 @@ namespace BovineLabs.HitStop
                     active.ValueRW = false;
 
                     if (state.OnEnd != ConditionKey.Null && Writers.TryGet(state.Source, out var writer))
-                    {
                         writer.Trigger(state.OnEnd, 1);
-                    }
                 }
             }
         }
