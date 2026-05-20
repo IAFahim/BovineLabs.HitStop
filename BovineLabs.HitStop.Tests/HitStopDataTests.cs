@@ -73,8 +73,7 @@ namespace BovineLabs.HitStop.Tests
                 Target.Owner,
                 Target.Source,
                 Target.Self,
-                Target.Custom0,
-                Target.Custom1
+                Target.Custom
             };
 
             foreach (var target in values)

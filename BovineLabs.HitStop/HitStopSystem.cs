@@ -15,7 +15,6 @@ namespace BovineLabs.HitStop
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     public partial struct HitStopSystem : ISystem
     {
-        private ComponentLookup<TargetsCustom> _customsLookup;
         private BufferLookup<Stat> _statsLookup;
         private ComponentLookup<HitStopState> _statesLookup;
         private ComponentLookup<HitStopDuration> _durationsLookup;
@@ -28,7 +27,6 @@ namespace BovineLabs.HitStop
         public void OnCreate(ref SystemState state)
         {
             state.RequireForUpdate<BeginSimulationEntityCommandBufferSystem.Singleton>();
-            _customsLookup = state.GetComponentLookup<TargetsCustom>(true);
             _statsLookup = state.GetBufferLookup<Stat>(true);
             _statesLookup = state.GetComponentLookup<HitStopState>(true);
             _durationsLookup = state.GetComponentLookup<HitStopDuration>(true);
@@ -42,7 +40,6 @@ namespace BovineLabs.HitStop
         [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
-            _customsLookup.Update(ref state);
             _statsLookup.Update(ref state);
             _statesLookup.Update(ref state);
             _durationsLookup.Update(ref state);
@@ -55,7 +52,6 @@ namespace BovineLabs.HitStop
 
             state.Dependency = new TriggerJob
             {
-                Customs = _customsLookup,
                 Stats = _statsLookup,
                 States = _statesLookup,
                 Durations = _durationsLookup,
@@ -109,7 +105,6 @@ namespace BovineLabs.HitStop
         [BurstCompile]
         private partial struct TriggerJob : IJobEntity
         {
-            [ReadOnly] public ComponentLookup<TargetsCustom> Customs;
             [ReadOnly] public BufferLookup<Stat> Stats;
             [ReadOnly] public ComponentLookup<HitStopState> States;
             [ReadOnly] public ComponentLookup<HitStopDuration> Durations;
@@ -123,7 +118,7 @@ namespace BovineLabs.HitStop
             {
                 if (cfg.OnHit == ConditionKey.Null || !HasEvent(events, cfg.OnHit)) return;
 
-                if (!TryResolveTarget(cfg.Target, entity, targets, Customs, out var target)) return;
+                if (!TryResolveTarget(cfg.Target, entity, targets, out var target)) return;
 
                 var duration = 0f;
                 var intensity = 0f;
@@ -184,7 +179,7 @@ namespace BovineLabs.HitStop
             }
 
             private static bool TryResolveTarget(Target target, Entity self, in Targets targets,
-                in ComponentLookup<TargetsCustom> customs, out Entity resolved)
+                out Entity resolved)
             {
                 resolved = target switch
                 {
@@ -192,8 +187,7 @@ namespace BovineLabs.HitStop
                     Target.Source => targets.Source,
                     Target.Target => targets.Target,
                     Target.Self => self,
-                    Target.Custom0 => customs.TryGetComponent(self, out var c) ? c.Target0 : Entity.Null,
-                    Target.Custom1 => customs.TryGetComponent(self, out var c) ? c.Target1 : Entity.Null,
+                    Target.Custom => targets.Custom,
                     _ => Entity.Null
                 };
 
