@@ -13,6 +13,7 @@ using Unity.Transforms;
 namespace BovineLabs.HitStop
 {
     [UpdateInGroup(typeof(SimulationSystemGroup))]
+    [Unity.Entities.WorldSystemFilter(Unity.Entities.WorldSystemFilterFlags.LocalSimulation | Unity.Entities.WorldSystemFilterFlags.ClientSimulation | Unity.Entities.WorldSystemFilterFlags.ServerSimulation)]
     public partial struct HitStopSystem : ISystem
     {
         private BufferLookup<Stat> _statsLookup;
